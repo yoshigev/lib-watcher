@@ -1,0 +1,59 @@
+from fastapi import APIRouter, Form, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from app.config import settings
+from app.db import get_users_collection
+from app.auth import verify_password, create_access_token, get_current_user_optional
+
+router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
+
+@router.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    user = get_current_user_optional(request)
+    if user:
+        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "settings": settings,
+        "error": None
+    })
+
+@router.post("/login")
+def handle_login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    users_col = get_users_collection()
+    user = users_col.find_one({"username": username.strip()})
+    
+    if not user or not verify_password(password, user.get("hashed_password", "")):
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "settings": settings,
+                "error": "שם משתמש או סיסמה שגויים",
+                "username": username
+            },
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    token = create_access_token(data={"sub": user["username"]})
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        max_age=60 * 60 * 24 * 30,
+        samesite="lax",
+        secure=False
+    )
+    return response
+
+@router.get("/logout")
+def handle_logout():
+    response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    response.delete_cookie("access_token")
+    return response

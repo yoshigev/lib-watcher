@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}הספרים שלי | {{ settings.LIBRARY_DISPLAY_NAME }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header with Stats -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900">הספרים שלי במעקב</h1>
+            <p class="text-sm text-slate-500 mt-1">המערכת בודקת את הקטלוג באופן תקופתי ושולחת מייל ל-<strong>{{ user.email }}</strong> כשהספר הופך לזמין.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/search" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all">
+                <span>➕</span>
+                <span>הוסף ספר למעקב</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl font-bold">
+                📚
+            </div>
+            <div>
+                <div class="text-xs font-semibold text-slate-400">סך הכל במעקב</div>
+                <div class="text-2xl font-extrabold text-slate-800">{{ total_watched }}</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl font-bold">
+                ✅
+            </div>
+            <div>
+                <div class="text-xs font-semibold text-slate-400">זמינים כעת להשאלה</div>
+                <div class="text-2xl font-extrabold text-emerald-600">{{ available_count }}</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl font-bold">
+                ⏳
+            </div>
+            <div>
+                <div class="text-xs font-semibold text-slate-400">מושאלים כרגע</div>
+                <div class="text-2xl font-extrabold text-amber-600">{{ total_watched - available_count }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Books List -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        {% if books %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-200/80 text-xs font-bold text-slate-600 uppercase">
+                        <th class="py-4 px-6">שם הכותר</th>
+                        <th class="py-4 px-6">מחבר/ת</th>
+                        <th class="py-4 px-6">סטטוס עותקים</th>
+                        <th class="py-4 px-6">בדיקה אחרונה</th>
+                        <th class="py-4 px-6 text-center">פעולות</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    {% for book in books %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="py-4 px-6">
+                            <div class="font-bold text-slate-900">{{ book.title }}</div>
+                            <div class="text-xs text-slate-400 mt-0.5">מספר מערכת: {{ book.item_id }}</div>
+                        </td>
+                        <td class="py-4 px-6 text-slate-600">
+                            {{ book.author or '—' }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if book.is_available %}
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>זמין! ({{ book.copies_available }} מתוך {{ book.copies_total }} פנויים)</span>
+                            </div>
+                            {% elif book.copies_total and book.copies_total > 0 %}
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                                <span>❌</span>
+                                <span>כל {{ book.copies_total }} העותקים מושאלים</span>
+                            </div>
+                            {% else %}
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                <span>⏳</span>
+                                <span>טרם נבדק</span>
+                            </div>
+                            {% endif %}
+
+                            {% if book.copies %}
+                            <div class="mt-2 space-y-1">
+                                {% for cp in book.copies %}
+                                <div class="text-xs text-slate-500 flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full {% if cp.is_available %}bg-emerald-500{% else %}bg-rose-400{% endif %}"></span>
+                                    <span>{{ cp.section }}: <strong>{{ cp.status }}</strong> (ברקוד: {{ cp.barcode }})</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-xs text-slate-500">
+                            {% if book.last_checked_at %}
+                                {{ book.last_checked_at.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                טרם נבדק
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center justify-center gap-2">
+                                <!-- Check Now -->
+                                <form action="/check-now/{{ book._id }}" method="POST">
+                                    <button type="submit" title="בדוק זמינות עכשיו"
+                                            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
+                                        🔄 בדוק
+                                    </button>
+                                </form>
+
+                                <!-- Catalog Link -->
+                                <a href="{{ settings.LIBRARY_BASE_URL }}/BuildaGate8library/general2/product_card_edit.php?SiteName={{ settings.LIBRARY_SITE_NAME }}&Clubtmp1=&CNumber=&NewNameMade={{ settings.LIBRARY_NEW_NAME_MADE }}&ItemID={{ book.item_id }}&Card={{ book.card_type or 'Card1' }}&Daf=1"
+                                   target="_blank" title="פתח בקטלוג המקורי"
+                                   class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition">
+                                    🔗 קטלוג
+                                </a>
+
+                                <!-- Delete -->
+                                <form action="/unwatch/{{ book._id }}" method="POST" onsubmit="return confirm('להסיר ספר זה מרשימת המעקב?');">
+                                    <button type="submit" title="הסר ממעקב"
+                                            class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold transition">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-16 px-4">
+            <div class="text-5xl mb-3">📖</div>
+            <h3 class="text-lg font-bold text-slate-800">אין עדיין ספרים ברשימת המעקב שלך</h3>
+            <p class="text-sm text-slate-500 mt-1 mb-6">חפש ספר בקטלוג וסמן אותו כדי לקבל התראה במייל כשהוא מתפנה.</p>
+            <a href="/search" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">
+                <span>🔍</span>
+                <span>חיפוש בקטלוג</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

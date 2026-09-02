@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: library-catalog-watcher
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: MONGODB_URI
+        sync: false
+      - key: DATABASE_NAME
+        value: library_catalog_db
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: LIBRARY_BASE_URL
+        sync: false
+      - key: LIBRARY_SITE_NAME
+        sync: false
+      - key: LIBRARY_NEW_NAME_MADE
+        sync: false
+      - key: LIBRARY_BUYER_ID
+        sync: false
+      - key: LIBRARY_DISPLAY_NAME
+        value: הספרייה העירונית
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: התראות ספרייה
+      - key: SEED_USERS
+        sync: false

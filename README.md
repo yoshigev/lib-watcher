@@ -1,96 +1,75 @@
-# 📚 מערכת התראות זמינות ספרים (Library Catalog Watcher)
+# Library Availability Watcher
 
-אפליקציית Web גנרית לניטור קטלוגי ספריות ציבוריות מבוססות מערכת BuildaGate, המאפשרת חיפוש ספרים, מעקב אחר עותקים מושאלים וקבלת התראות מייל (Brevo) ברגע שספר הופך לזמין להשאלה.
+A FastAPI web app for monitoring public libraries that use the BuildaGate catalog system. Users can search the catalog, watch borrowed books, and receive email notifications through Brevo when a copy becomes available.
 
-האפליקציה פועלת במודל **Wake-on-Cron** חינמי לחלוטין (מבוסס **Render**, **MongoDB Atlas** ו-**GitHub Actions**).
+The app runs as a Docker web service on Render, stores data in MongoDB Atlas, and uses WatchCron Cloud Cron to trigger availability checks every 15 minutes. The GitHub repository is public; never commit credentials or local environment files.
 
----
+## Local setup
 
-## 🚀 הרצה מקומית עם קובץ `.env` (Quick Start)
+1. Install Python 3.11 or later and install dependencies:
 
-קובץ ההגדרות **`.env`** מכיל את כל משתני הסביבה הדרושים להרצה, והוא מוגדר ב-**`.gitignore`** כך שלעולם לא יעלה ל-Git.
-
-### שלבי הרצה:
-
-1. **התקנת התלויות (חד-פעמי):**
-   ```bash
+   ```sh
    pip install -r requirements.txt
    ```
 
-2. **הפעלת השרת המקומי:**
-   הפעל את השרת באמצעות `python -m uvicorn` (הקורא אוטומטית את קובץ ה-`.env` שבתיקייה):
-   ```bash
+2. Copy `.env.example` to `.env` and fill in local settings. `.env` is ignored by Git. Set at least `MONGODB_URI`, `DATABASE_NAME`, `SECRET_KEY`, and `SEED_USERS`. For real email delivery, set `BREVO_API_KEY` and use a verified `BREVO_SENDER_EMAIL`.
+
+3. Start the development server:
+
+   ```sh
    python -m uvicorn app.main:app --reload --port 8000
    ```
 
-3. **כניסה למערכת בדפדפן:**
-   גש אל: **http://localhost:8000**  
-   - **שם משתמש:** `admin`
-   - **סיסמה:** `password123`  
-   *(המשתמש והסיסמה מוגדרים במשתנה `SEED_USERS` שבקובץ `.env` וניתנים לשינוי בכל עת)*.
+4. Open http://localhost:8000. The initial user is configured through `SEED_USERS`; change its example credentials before using the app.
 
-> [!NOTE]
-> **אין צורך בהתקנת MongoDB מקומי:** אם אין שרת MongoDB דולק במחשב שלך, האפליקציה מזהה זאת ומשתמשת אוטומטית במסד נתונים בזיכרון (`mongomock`) לצורכי פיתוח ובדיקות.
+The health endpoint is available at `/health`. Cron checks are handled by `GET /api/cron/check` and require the `X-Cron-Secret` header to match `CRON_SECRET`.
 
----
+## Environment variables
 
-## 🔒 שמירה על סודיות ופרטיות ב-Git
+| Variable | Purpose |
+| --- | --- |
+| `MONGODB_URI` | MongoDB Atlas connection string |
+| `DATABASE_NAME` | MongoDB database name |
+| `SECRET_KEY` | Application signing key |
+| `CRON_SECRET` | Secret required by the scheduled check endpoint |
+| `LIBRARY_BASE_URL` | Library catalog base URL |
+| `LIBRARY_SITE_NAME` | Library site identifier used by BuildaGate |
+| `LIBRARY_NEW_NAME_MADE` | BuildaGate catalog identifier |
+| `LIBRARY_BUYER_ID` | Library buyer identifier |
+| `LIBRARY_DISPLAY_NAME` | Name shown in notifications |
+| `BREVO_API_KEY` | Brevo SMTP API key |
+| `BREVO_SENDER_EMAIL` | Verified Brevo sender address |
+| `BREVO_SENDER_NAME` | Sender name shown in email |
+| `SEED_USERS` | JSON array of users created during initialization |
 
-- כל שמות הספריות, מזהי ה-URL, הסיסמאות ומפתחות ה-API מוגדרים **אך ורק בקובץ `.env`**.
-- הקובץ **`.gitignore`** מונע העלאה של `.env`, `.env.*` או קובצי מידע סודיים ל-GitHub.
-- הקובץ **`.env.example`** כולל תבנית נקייה לשימוש ציבורי ב-Repository.
+`WATCHCRON_API_BASE_URL` and `WATCHCRON_API_KEY` are credentials for the WatchCron management API; the app itself does not need them to receive scheduled calls. Keep them only in ignored local files or a secrets manager.
 
----
+## Render deployment
 
-## ⚙️ הגדרת שליחת מיילים (Brevo) — שלב אחר שלב
+The public repository is configured for the Render web service `lib-watcher` (`srv-dav2970u01pc7385kma0`). It builds from the root-level `Dockerfile`; the Render service root directory must be the repository root, not `app/`.
 
-כדי לקבל מיילים אמיתיים לתיבה שלך (300 מיילים חינם ביום ללא כרטיס אשראי):
+The Docker image installs `requirements.txt`, copies the app source, and listens on Render's `$PORT`. The health check path is `/health`. Set the application environment variables in the Render dashboard; do not commit `.env` or secret values. Ensure `MONGODB_URI`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `SEED_USERS`, `SECRET_KEY`, and `CRON_SECRET` are configured on the service.
 
-1. **הרשמה:** פתח חשבון חינם ב-[brevo.com](https://www.brevo.com).
-2. **אימות כתובת שולח (Sender Email) — חובה:**
-   - בתפריט Brevo גש אל: **Senders, Domains & Dedicated IPs** ➜ **Senders**.
-   - לחץ על **Add a sender**, הזן את השם ואת כתובת המייל שלך (למשל: `your_email@gmail.com`).
-   - תקבל מייל אימות לתיבה ➜ אשר את הקישור.
-3. **יצירת API Key:**
-   - לחץ על שם החשבון (בפינה) ➜ **SMTP & API** ➜ לשונית **API Keys**.
-   - לחץ על **Generate a new API key** והעתק את המחרוזת (`xkeysib-...`).
-4. **הזנת המשתנים בקובץ `.env`:**
-   ```env
-   BREVO_API_KEY=xkeysib-your-api-key-here
-   BREVO_SENDER_EMAIL=your_email@gmail.com   # המייל שאימתת ב-Brevo
-   BREVO_SENDER_NAME=התראות ספרייה
-   ```
+With the Render CLI installed and logged into the correct workspace, deploy the current `master` branch with:
 
----
+```sh
+render deploys create srv-dav2970u01pc7385kma0 --wait
+```
 
-## ☁️ פריסה מרכזית וחינמית בענן (Deployment)
+## WatchCron scheduling
 
-הארכיטקטורה מנוהלת מתוך ה-Repository באמצעות **Render Blueprint** ו-**GitHub Actions**.
+Use WatchCron **Cloud Cron** to invoke the app endpoint:
 
-### 1. יצירת מסד נתונים חינמי ב-MongoDB Atlas:
-1. פתח חשבון ב-[mongodb.com/atlas](https://www.mongodb.com/atlas) (חינם, ללא כרטיס אשראי).
-2. צור Cluster מסוג **M0 (Free)**.
-3. ב-**Database Access** צור משתמש וסיסמה, וב-**Network Access** אפשר גישה מכל מקום (`0.0.0.0/0`).
-4. העתק את ה-Connection String (`mongodb+srv://...`).
+- **URL:** `https://lib-watcher.onrender.com/api/cron/check`
+- **Method:** `GET`
+- **Schedule:** `*/15 * * * *` (every 15 minutes)
+- **Header:** `X-Cron-Secret: <the same CRON_SECRET configured in Render>`
 
-### 2. פריסה ב-Render באמצעות Blueprint (`render.yaml`):
-1. חבר את ה-GitHub repository שלך ב-[render.com](https://render.com).
-2. לחץ **New** ➜ **Blueprint**, בחר ב-Repo ואשר.
-3. בלוח הניהול ב-Render הזן את ה-Environment Variables מתוך ה-`.env` שלך:
-   - `MONGODB_URI`: מחרוזת החיבור של MongoDB Atlas.
-   - `LIBRARY_BASE_URL`: כתובת שרת הקטלוג.
-   - `LIBRARY_SITE_NAME`: מזהה האתר בקטלוג.
-   - `LIBRARY_NEW_NAME_MADE`: מזהה הקטגוריה בקטלוג.
-   - `LIBRARY_BUYER_ID`: מזהה הקונה בקטלוג.
-   - `LIBRARY_DISPLAY_NAME`: שם התצוגה של הספרייה.
-   - `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`: הגדרות המייל מ-Brevo.
-   - `SEED_USERS`: משתמש מורשה (JSON).
-   - `CRON_SECRET`: מחרוזת סודית לבדיקות ה-Cron.
+Set this up as a Cloud Cron task in the WatchCron dashboard. The WatchCron management API key is separate from this request header; do not send that API key to the app endpoint. WatchCron documents its management API at `https://watchcron.com/api/v1` and uses `Authorization: Bearer <your-api-key>` for API requests. The documented API currently manages checks; Cloud Cron tasks are configured in the dashboard.
 
-### 3. הפעלת ה-Cron דרך GitHub Actions:
-קובץ ה-Workflow נמצא ב-`.github/workflows/cron.yml`.  
-בהגדרות ה-Repository ב-GitHub (Settings ➜ Secrets and variables ➜ Actions), הוסף 2 Secrets:
-- `APP_URL`: כתובת האפליקציה ב-Render (למשל: `https://your-app.onrender.com`).
-- `CRON_SECRET`: המחרוזת שהגדרת ב-Render.
+## Security
 
-*GitHub Actions יפעיל בדיקת זמינות כל 15 דקות ויעיר את השרת אוטומטית בעת הצורך.*
+- `.env`, `.env.*`, `*.env`, and `.deployment-secrets` are ignored by Git. The Docker build context excludes them as well.
+- `.env.example` contains placeholders only.
+- This repository is public. Do not commit passwords, API keys, live connection strings, or user credentials.
+- Replace all sample keys and passwords with strong unique values before deploying.

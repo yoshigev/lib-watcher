@@ -3,6 +3,8 @@ __pycache__
 *.pyo
 *.pyd
 .env
+.env.*
+.deployment-secrets
 library.db
 .git
 .gitignore

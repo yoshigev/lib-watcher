@@ -1,8 +1,10 @@
 # Environment and secrets (NEVER COMMIT TO GIT)
 .env
 .env.*
+!.env.example
 *.env
 *.local
+.deployment-secrets
 
 # Python artifacts
 __pycache__/

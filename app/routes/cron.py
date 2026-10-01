@@ -13,7 +13,7 @@ def trigger_availability_check(
 ):
     """
     Protected endpoint to trigger periodic book availability checks.
-    Can be invoked by GitHub Actions, cron-job.org, or external cron.
+    Can be invoked by WatchCron Cloud Cron or another external scheduler.
     """
     provided_secret = secret or x_cron_secret
     if not provided_secret or provided_secret != settings.CRON_SECRET:

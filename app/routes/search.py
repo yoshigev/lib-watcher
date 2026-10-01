@@ -27,13 +27,16 @@ def search_page(
         search_data = catalog_client.search(query=q.strip(), field=field, card_type=card_type)
         results = search_data
 
-    return templates.TemplateResponse("search.html", {
-        "request": request,
-        "settings": settings,
-        "user": user,
-        "query": q or "",
-        "field": field,
-        "card_type": card_type,
-        "results": results,
-        "watched_item_ids": watched_item_ids
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="search.html",
+        context={
+            "settings": settings,
+            "user": user,
+            "query": q or "",
+            "field": field,
+            "card_type": card_type,
+            "results": results,
+            "watched_item_ids": watched_item_ids
+        }
+    )

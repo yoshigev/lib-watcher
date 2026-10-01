@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     
     # Predefined users JSON
     SEED_USERS: str = Field(
-        default='[{"username": "admin", "email": "admin@example.com", "password": "password123"}]'
+        default='[]'
     )
     
     @property

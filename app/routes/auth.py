@@ -13,34 +13,38 @@ def login_page(request: Request):
     user = get_current_user_optional(request)
     if user:
         return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("login.html", {
-        "request": request,
-        "settings": settings,
-        "error": None
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={
+            "settings": settings,
+            "error": None
+        }
+    )
 
 @router.post("/login")
 def handle_login(
     request: Request,
-    username: str = Form(...),
+    email: str = Form(...),
     password: str = Form(...)
 ):
     users_col = get_users_collection()
-    user = users_col.find_one({"username": username.strip()})
+    normalized_email = email.strip().lower()
+    user = users_col.find_one({"email": normalized_email})
     
     if not user or not verify_password(password, user.get("hashed_password", "")):
         return templates.TemplateResponse(
-            "login.html",
-            {
-                "request": request,
+            request=request,
+            name="login.html",
+            context={
                 "settings": settings,
-                "error": "שם משתמש או סיסמה שגויים",
-                "username": username
+                "error": "כתובת אימייל או סיסמה שגויות",
+                "email": email
             },
             status_code=status.HTTP_400_BAD_REQUEST
         )
 
-    token = create_access_token(data={"sub": user["username"]})
+    token = create_access_token(data={"sub": user["email"]})
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     response.set_cookie(
         key="access_token",

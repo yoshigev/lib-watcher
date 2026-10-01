@@ -38,11 +38,14 @@ def get_current_user_optional(request: Request) -> Optional[Dict[str, Any]]:
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if not username:
+        identity: str = payload.get("sub")
+        if not identity:
             return None
         users_col = get_users_collection()
-        return users_col.find_one({"username": username, "is_active": True})
+        return users_col.find_one({
+            "$or": [{"email": identity}, {"username": identity}],
+            "is_active": True
+        })
     except Exception:
         return None
 

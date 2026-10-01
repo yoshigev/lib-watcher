@@ -20,11 +20,14 @@ def dashboard(
     available_count = sum(1 for b in books if b.get("is_available"))
     total_watched = len(books)
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "settings": settings,
-        "user": user,
-        "books": books,
-        "available_count": available_count,
-        "total_watched": total_watched
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={
+            "settings": settings,
+            "user": user,
+            "books": books,
+            "available_count": available_count,
+            "total_watched": total_watched
+        }
+    )

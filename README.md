@@ -20,27 +20,27 @@ The app runs as a Docker web service on Render, stores data in MongoDB Atlas, an
    python -m uvicorn app.main:app --reload --port 8000
    ```
 
-4. Open http://localhost:8000. The initial user is configured through `SEED_USERS`; change its example credentials before using the app.
+4. Open http://localhost:8000. Sign in with the email and password configured in `SEED_USERS`. The username is derived from the email, so a username field is not required.
 
 The health endpoint is available at `/health`. Cron checks are handled by `GET /api/cron/check` and require the `X-Cron-Secret` header to match `CRON_SECRET`.
 
 ## Environment variables
 
-| Variable | Purpose |
-| --- | --- |
-| `MONGODB_URI` | MongoDB Atlas connection string |
-| `DATABASE_NAME` | MongoDB database name |
-| `SECRET_KEY` | Application signing key |
-| `CRON_SECRET` | Secret required by the scheduled check endpoint |
-| `LIBRARY_BASE_URL` | Library catalog base URL |
-| `LIBRARY_SITE_NAME` | Library site identifier used by BuildaGate |
-| `LIBRARY_NEW_NAME_MADE` | BuildaGate catalog identifier |
-| `LIBRARY_BUYER_ID` | Library buyer identifier |
-| `LIBRARY_DISPLAY_NAME` | Name shown in notifications |
-| `BREVO_API_KEY` | Brevo SMTP API key |
-| `BREVO_SENDER_EMAIL` | Verified Brevo sender address |
-| `BREVO_SENDER_NAME` | Sender name shown in email |
-| `SEED_USERS` | JSON array of users created during initialization |
+| Variable                | Purpose                                           |
+| ----------------------- | ------------------------------------------------- |
+| `MONGODB_URI`           | MongoDB Atlas connection string                   |
+| `DATABASE_NAME`         | MongoDB database name                             |
+| `SECRET_KEY`            | Application signing key                           |
+| `CRON_SECRET`           | Secret required by the scheduled check endpoint   |
+| `LIBRARY_BASE_URL`      | Library catalog base URL                          |
+| `LIBRARY_SITE_NAME`     | Library site identifier used by BuildaGate        |
+| `LIBRARY_NEW_NAME_MADE` | BuildaGate catalog identifier                     |
+| `LIBRARY_BUYER_ID`      | Library buyer identifier                          |
+| `LIBRARY_DISPLAY_NAME`  | Name shown in notifications                       |
+| `BREVO_API_KEY`         | Brevo SMTP API key                                |
+| `BREVO_SENDER_EMAIL`    | Verified Brevo sender address                     |
+| `BREVO_SENDER_NAME`     | Sender name shown in email                        |
+| `SEED_USERS`            | JSON array of users created during initialization |
 
 `WATCHCRON_API_BASE_URL` and `WATCHCRON_API_KEY` are credentials for the WatchCron management API; the app itself does not need them to receive scheduled calls. Keep them only in ignored local files or a secrets manager.
 
